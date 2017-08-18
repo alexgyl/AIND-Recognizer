@@ -105,4 +105,37 @@ class SelectorCV(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection using CV
-        raise NotImplementedError
+        ## Create the split method & fix the seeding
+        split_method = KFold(random_state = self.random_state)
+        best_score = 0
+        best_num_states = 1
+        ## Iterate through a number of states to test which is the best representation
+        for num_states in range(1,5):
+            score = 0
+            ## Perform CV split
+            for cv_train_idx, cv_test_idx in split_method.split(word_sequences):
+                try:
+                    hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
+                                random_state=self.random_state, verbose=False).fit(self.X[cv_train_idx], self.lengths)
+                    if self.verbose:
+                        print("model created for {} with {} states".format(self.this_word, num_states))
+                except:
+                    if self.verbose:
+                        print("failure on {} with {} states".format(self.this_word, num_states))
+                        return None
+                score += model.score(self.X[cv_test_idx], self.lengths)
+            
+            ## Average the score across all the folds - KFold is fixed to 3 at the moment
+            score /= 3
+            ## Tracking best score and best number of states parameter
+            if score > best_score:
+                best_score = score
+                best_num_states = num_states
+        ## Build the best hmm model
+        best_hmm_model = GaussianHMM(n_components=best_num_states, covariance_type="diag", n_iter=1000,
+                        random_state=self.random_state, verbose=True).fit(self.X[cv_train_idx], self.lengths)
+        if self.verbose:
+            print("Best model created for {} with {} states".format(self.this_word, best_num_states))
+
+        return best_hmm_model
+
