@@ -168,11 +168,15 @@ class SelectorDIC(ModelSelector):
                     # Log-likelihood score
                     logL = hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
                     # DIC score
-                    DIC_score += (-2 * logL) + (num_states * math.log(sequence_split_train[1]))
+                    # Likelihood of evidence of the model
+                    inv_logL = math.exp(logL)
+                    # Likelihood of anti-evidence of the model
+                    logL_anti = math.log(1 - inv_logL)
+                    DIC_score += logL - (1 / ()) # TODO: Find out how to implement DIC properly
                 except:
+                        return None
                     if self.verbose:
                         print("failure on {} with {} states".format(self.this_word, num_states))
-                        return None
             
             ## Average the score across all the folds - KFold is fixed to 3 at the moment, except if there's too little data
             DIC_score /= n_split
