@@ -116,14 +116,18 @@ class SelectorCV(ModelSelector):
             else:
                 n_split = 3
             ## Create the split method & fix the seeding
+            # print("Final n_split:{}\n".format(n_split))
+            # print("This word is:{}\n".format(self.this_word))
             split_method = KFold(n_splits = n_split, random_state = self.random_state)
             for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
                 try:
+                    sequence_split_train = combine_sequences(cv_train_idx, self.sequences)
+                    sequence_split_cv = combine_sequences(cv_test_idx, self.sequences)
                     hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
-                                random_state=self.random_state, verbose=False).fit(self.X[cv_train_idx], self.lengths)
+                                random_state=self.random_state, verbose=False).fit(sequence_split_train[0], sequence_split_train[1])
                     if self.verbose:
                         print("model created for {} with {} states".format(self.this_word, num_states))
-                    score += hmm_model.score(self.X[cv_test_idx], self.lengths)
+                    score += hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
                 except:
                     if self.verbose:
                         print("failure on {} with {} states".format(self.this_word, num_states))
@@ -135,11 +139,11 @@ class SelectorCV(ModelSelector):
             if score > best_score:
                 best_score = score
                 best_num_states = num_states
-        ## Build the best hmm model
+        ## Build the best hmm model using all data
         best_hmm_model = GaussianHMM(n_components=best_num_states, covariance_type="diag", n_iter=1000,
-                        random_state=self.random_state, verbose=True).fit(self.X[cv_train_idx], self.lengths)
+                        random_state=self.random_state, verbose=True).fit(self.X, self.lengths)
         if self.verbose:
             print("Best model created for {} with {} states".format(self.this_word, best_num_states))
 
         return best_hmm_model
-
+        # return None
