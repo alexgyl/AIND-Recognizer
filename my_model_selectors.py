@@ -1,6 +1,7 @@
 import math
 import statistics
 import warnings
+import copy # Used for deep copy
 
 import numpy as np
 from hmmlearn.hmm import GaussianHMM
@@ -103,8 +104,22 @@ class SelectorBIC(ModelSelector):
                         print("model created for {} with {} states".format(self.this_word, num_states))
                     # Log-likelihood score
                     logL = hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
+                    # Number of parameters used by the model - HMMs are defined by the transition probabilities,
+                    # the emission probabilities, initial probability, means and variance of distribution
+                    # Let n be the number of states and m be the number of features
+                    # Transition probabilities -> n * (n - 1) since for the last prob, we can find it through (1 - all other prob)
+                    # Initial probabilites -> n - 1 since we have n possible states to start in but last state can found via (1 - n)
+                    # Means of distributions -> n * m means as there is a distribution for each features in each state
+                    # Variance of distributions -> n * m variances as there needs to be a variance for each distribution and we are 
+                    # also using normal distributions
+                    # This gives us n^2 + 2nm - 1
+                    n_data_points, n_features = self.X.shape
+                    n_params = num_states ** 2 + (2 * num_states * n_features) - 1
+
+                    # Number of data points
+                    N = len(sequence_split_train[1])
                     # BIC score
-                    BIC_score += (-2 * logL) + (num_states * math.log(sequence_split_train[1]))
+                    BIC_score += (-2 * logL) + (n_params * math.log(len(sequence_split_train[1])))
                 except:
                     if self.verbose:
                         print("failure on {} with {} states".format(self.this_word, num_states))
@@ -164,19 +179,20 @@ class SelectorDIC(ModelSelector):
                     hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
                                 random_state=self.random_state, verbose=False).fit(sequence_split_train[0], sequence_split_train[1])
                     if self.verbose:
-                        print("model created for {} with {} states".format(self.this_word, num_states))
-                    # Log-likelihood score
+                        print("model created for {} with {} states".format(self.this_word, num_states))                
+                    # Log-likelihood of model in context of evidence
                     logL = hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
-                    # DIC score
-                    # Likelihood of evidence of the model
-                    inv_logL = math.exp(logL)
-                    # Likelihood of anti-evidence of the model
-                    logL_anti = math.log(1 - inv_logL)
-                    DIC_score += logL - (1 / ()) # TODO: Find out how to implement DIC properly
-                except:
-                        return None
+                    # Remove current word from the list of all words 
+                    anti_words = self.words.keys()
+                    anti_words.remove(self.this_word)
+                    # Log-likelihood of model in context of anti-evidence
+                    anti_scores = sum([hmm_model.score(self.hwords[word][0], self.hwords[word][1]) for word in anti_words])
+                    # DIC Score
+                    DIC_score += logL - anti_scores
+                except:   
                     if self.verbose:
                         print("failure on {} with {} states".format(self.this_word, num_states))
+                        return None
             
             ## Average the score across all the folds - KFold is fixed to 3 at the moment, except if there's too little data
             DIC_score /= n_split
@@ -185,7 +201,7 @@ class SelectorDIC(ModelSelector):
                 best_score = DIC_score
                 best_num_states = num_states
 
-        ## Build the best hmm model using all data once parameter has been finalized
+        # Build the best hmm model using all data once parameter has been finalized
         best_hmm_model = GaussianHMM(n_components=best_num_states, covariance_type="diag", n_iter=1000,
                         random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
         if self.verbose:
