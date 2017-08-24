@@ -85,10 +85,7 @@ class SelectorBIC(ModelSelector):
             BIC_score = 0
             ## Perform CV split
             # Case if we have less data than samples (here we use KFold = 3 folds)
-            if len(self.sequences) < 3:
-                n_split = math.ceil(0.75 * len(self.sequences))
-            else:
-                n_split = 3
+            n_split = min(3, len(self.sequences))
             ## Create the split method & fix the seeding
             split_method = KFold(n_splits = n_split, random_state = self.random_state)
             ## KFold CV
@@ -154,48 +151,33 @@ class SelectorDIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on DIC scores
-        ## Implement model selection using CV
         # Initial values
         best_score = float("Inf")
         best_num_states = 2
         ## Iterate through a number of states to test which is the best representation
         for num_states in range(self.min_n_components, self.max_n_components + 1):
             DIC_score = 0
-            ## Perform CV split
-            # Case if we have less data than samples (here we use KFold = 3 folds)
-            if len(self.sequences) < 3:
-                n_split = math.ceil(0.75 * len(self.sequences))
-            else:
-                n_split = 3
-            ## Create the split method & fix the seeding
-            split_method = KFold(n_splits = n_split, random_state = self.random_state)
-            ## KFold CV
-            for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
-                try:
-                    # Split the sequences accordingly using helper function to split the data correct
-                    sequence_split_train = combine_sequences(cv_train_idx, self.sequences)
-                    sequence_split_cv = combine_sequences(cv_test_idx, self.sequences)
-                    # HMM Model building - num_states is our parameter that is found using CV
-                    hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
-                                random_state=self.random_state, verbose=False).fit(sequence_split_train[0], sequence_split_train[1])
-                    if self.verbose:
-                        print("model created for {} with {} states".format(self.this_word, num_states))                
-                    # Log-likelihood of model in context of evidence
-                    logL = hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
-                    # Remove current word from the list of all words 
-                    anti_words = self.words.keys()
-                    anti_words.remove(self.this_word)
-                    # Log-likelihood of model in context of anti-evidence
-                    anti_scores = sum([hmm_model.score(self.hwords[word][0], self.hwords[word][1]) for word in anti_words])
-                    # DIC Score
-                    DIC_score += logL - (anti_scores / len(anti_words))
-                except:   
-                    if self.verbose:
-                        print("failure on {} with {} states".format(self.this_word, num_states))
-                        return None
-            
-            ## Average the score across all the folds - KFold is fixed to 3 at the moment, except if there's too little data
-            DIC_score /= n_split
+
+            try:
+                # HMM Model building - num_states is our parameter that is found using DIC
+                hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
+                            random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                if self.verbose:
+                    print("model created for {} with {} states".format(self.this_word, num_states))                
+                # Log-likelihood of model in context of evidence
+                logL = hmm_model.score(self.X, self.lengths)
+                # Remove current word from the list of all words 
+                anti_words = self.words.keys()
+                anti_words.remove(self.this_word)
+                # Log-likelihood of model in context of anti-evidence
+                anti_scores = sum([hmm_model.score(self.hwords[word][0], self.hwords[word][1]) for word in anti_words])
+                # DIC Score
+                DIC_score += logL - (anti_scores / len(anti_words))
+            except:   
+                if self.verbose:
+                    print("failure on {} with {} states".format(self.this_word, num_states))
+                    return None
+
             ## Tracking best score and best number of states parameter - the lower the BIC the better
             if DIC_score < best_score:
                 best_score = DIC_score
@@ -226,10 +208,7 @@ class SelectorCV(ModelSelector):
             score = 0
             ## Perform CV split
             # Case if we have less data than samples (here we use KFold = 3 folds)
-            if len(self.sequences) < 3:
-                n_split = math.ceil(0.75 * len(self.sequences))
-            else:
-                n_split = 3
+            n_split = min(3, len(self.sequences))   
             ## Create the split method & fix the seeding
             split_method = KFold(n_splits = n_split, random_state = self.random_state)
             ## KFold CV
