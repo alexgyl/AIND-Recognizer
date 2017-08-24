@@ -188,7 +188,7 @@ class SelectorDIC(ModelSelector):
                     # Log-likelihood of model in context of anti-evidence
                     anti_scores = sum([hmm_model.score(self.hwords[word][0], self.hwords[word][1]) for word in anti_words])
                     # DIC Score
-                    DIC_score += logL - anti_scores
+                    DIC_score += logL - (anti_scores / len(anti_words))
                 except:   
                     if self.verbose:
                         print("failure on {} with {} states".format(self.this_word, num_states))
