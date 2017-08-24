@@ -83,47 +83,35 @@ class SelectorBIC(ModelSelector):
         ## Iterate through a number of states to test which is the best representation
         for num_states in range(self.min_n_components, self.max_n_components + 1):
             BIC_score = 0
-            ## Perform CV split
-            # Case if we have less data than samples (here we use KFold = 3 folds)
-            n_split = min(3, len(self.sequences))
-            ## Create the split method & fix the seeding
-            split_method = KFold(n_splits = n_split, random_state = self.random_state)
-            ## KFold CV
-            for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
-                try:
-                    # Split the sequences accordingly using helper function to split the data correct
-                    sequence_split_train = combine_sequences(cv_train_idx, self.sequences)
-                    sequence_split_cv = combine_sequences(cv_test_idx, self.sequences)
-                    # HMM Model building - num_states is our parameter that is found using CV
-                    hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
-                                random_state=self.random_state, verbose=False).fit(sequence_split_train[0], sequence_split_train[1])
-                    if self.verbose:
-                        print("model created for {} with {} states".format(self.this_word, num_states))
-                    # Log-likelihood score
-                    logL = hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
-                    # Number of parameters used by the model - HMMs are defined by the transition probabilities,
-                    # the emission probabilities, initial probability, means and variance of distribution
-                    # Let n be the number of states and m be the number of features
-                    # Transition probabilities -> n * (n - 1) since for the last prob, we can find it through (1 - all other prob)
-                    # Initial probabilites -> n - 1 since we have n possible states to start in but last state can found via (1 - n)
-                    # Means of distributions -> n * m means as there is a distribution for each features in each state
-                    # Variance of distributions -> n * m variances as there needs to be a variance for each distribution and we are 
-                    # also using normal distributions
-                    # This gives us n^2 + 2nm - 1
-                    n_data_points, n_features = self.X.shape
-                    n_params = num_states ** 2 + (2 * num_states * n_features) - 1
-
-                    # Number of data points
-                    N = len(sequence_split_train[1])
-                    # BIC score
-                    BIC_score += (-2 * logL) + (n_params * math.log(len(sequence_split_train[1])))
-                except:
-                    if self.verbose:
-                        print("failure on {} with {} states".format(self.this_word, num_states))
-                        return None
             
-            ## Average the score across all the folds - KFold is fixed to 3 at the moment, except if there's too little data
-            BIC_score /= n_split
+            try:
+                # HMM Model building - num_states is our parameter that is found using CV
+                hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
+                            random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                if self.verbose:
+                    print("model created for {} with {} states".format(self.this_word, num_states))
+                # Log-likelihood score
+                logL = hmm_model.score(self.X, self.lengths)
+                # Number of parameters used by the model - HMMs are defined by the transition probabilities,
+                # the emission probabilities, initial probability, means and variance of distribution
+                # Let n be the number of states and m be the number of features
+                # Transition probabilities -> n * (n - 1) since for the last prob, we can find it through (1 - all other prob)
+                # Initial probabilites -> n - 1 since we have n possible states to start in but last state can found via (1 - n)
+                # Means of distributions -> n * m means as there is a distribution for each features in each state
+                # Variance of distributions -> n * m variances as there needs to be a variance for each distribution and we are 
+                # also using normal distributions
+                # This gives us n^2 + 2nm - 1
+                n_data_points, n_features = self.X.shape
+                n_params = num_states ** 2 + (2 * num_states * n_features) - 1
+
+                # Number of data points
+                N = len(sequence_split_train[1])
+                # BIC score
+                BIC_score += (-2 * logL) + (n_params * math.log(len(sequence_split_train[1])))
+            except:
+                if self.verbose:
+                    print("failure on {} with {} states".format(self.this_word, num_states))
+                    return None
             ## Tracking best score and best number of states parameter - the lower the BIC the better
             if BIC_score < best_score:
                 best_score = BIC_score
