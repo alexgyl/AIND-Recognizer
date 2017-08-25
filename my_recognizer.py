@@ -30,19 +30,17 @@ def recognize(models: dict, test_set: SinglesData):
         new_xlengths[all_words[i]] = Xlengths.pop(old_keys[i])
 
     for key, model in models.items():
-        logL = model.score(new_xlengths['GIVE'][0], new_xlengths['GIVE'][1])
-        print(logL)
-        # # Initializing an empty dictionary with word keys
-        # prob_dict = {word_key: None for word_key in all_words}
-        # # Score all words
-        # for word in all_words:
-        #     print(word)        
-        #     logL = model.score(new_xlengths[word][0], new_xlengths[word][1])
-        #     prob_dict[word] = logL
-        # # Find the best guess word
-        # best_guess = max(prob_dict)
-        # # Update probabilities and guesses list
-        # probabilities.append(prob_dict)
-        # guesses.append(best_guess)
+        # Initializing an empty dictionary with word keys
+        prob_dict = {word_key: None for word_key in all_words}
+        # Score all words
+        for word in all_words:
+            print(word)        
+            logL = model.score(new_xlengths[word][0], new_xlengths[word][1])
+            prob_dict[word] = logL
+        # Find the best guess word
+        best_guess = max(prob_dict)
+        # Update probabilities and guesses list
+        probabilities.append(prob_dict)
+        guesses.append(best_guess)
 
     return probabilities, guesses
