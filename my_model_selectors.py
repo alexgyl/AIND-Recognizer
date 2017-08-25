@@ -76,7 +76,7 @@ class SelectorBIC(ModelSelector):
         :return: GaussianHMM object
         """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        ## Implement model selection using CV
+        ## Implement model selection using BIC
         # Initial values
         best_score = float("Inf")
         best_num_states = 2
@@ -138,7 +138,7 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
+        # Implement model selection based on DIC scores
         # Initial values
         best_score = float("Inf")
         best_num_states = 2

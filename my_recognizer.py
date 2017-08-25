@@ -34,8 +34,11 @@ def recognize(models: dict, test_set: SinglesData):
         prob_dict = {word_key: None for word_key in all_words}
         # Score all words
         for word in all_words:
-            print(word)        
-            logL = model.score(new_xlengths[word][0], new_xlengths[word][1])
+            # print(word)        
+            try:
+                logL = model.score(new_xlengths[word][0], new_xlengths[word][1])
+            except:
+                logL = float("-Inf")
             prob_dict[word] = logL
         # Find the best guess word
         best_guess = max(prob_dict)
