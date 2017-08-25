@@ -1,4 +1,5 @@
 import warnings
+import copy
 from asl_data import SinglesData
 
 
@@ -20,6 +21,28 @@ def recognize(models: dict, test_set: SinglesData):
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     probabilities = []
     guesses = []
-    # TODO implement the recognizer
-    # return probabilities, guesses
-    raise NotImplementedError
+    all_words = test_set.wordlist
+    Xlengths = copy.deepcopy(test_set.get_all_Xlengths())
+    old_keys = list(Xlengths.keys())
+    new_xlengths = {word: None for word in all_words}
+    # Changing the keys of Xlengths as it's integers and not the words of the test set
+    for i in range(len(all_words)):
+        new_xlengths[all_words[i]] = Xlengths.pop(old_keys[i])
+
+    for key, model in models.items():
+        logL = model.score(new_xlengths['GIVE'][0], new_xlengths['GIVE'][1])
+        print(logL)
+        # # Initializing an empty dictionary with word keys
+        # prob_dict = {word_key: None for word_key in all_words}
+        # # Score all words
+        # for word in all_words:
+        #     print(word)        
+        #     logL = model.score(new_xlengths[word][0], new_xlengths[word][1])
+        #     prob_dict[word] = logL
+        # # Find the best guess word
+        # best_guess = max(prob_dict)
+        # # Update probabilities and guesses list
+        # probabilities.append(prob_dict)
+        # guesses.append(best_guess)
+
+    return probabilities, guesses

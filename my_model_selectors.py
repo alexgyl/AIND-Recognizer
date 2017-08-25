@@ -104,7 +104,7 @@ class SelectorBIC(ModelSelector):
                 n_data_points, n_features = self.X.shape
                 n_params = num_states ** 2 + (2 * num_states * n_features) - 1
 
-                # Number of data points
+                # Number of data points, considering that each sequence is 1 data point 
                 N = len(sequence_split_train[1])
                 # BIC score
                 BIC_score += (-2 * logL) + (n_params * math.log(len(sequence_split_train[1])))
@@ -155,7 +155,7 @@ class SelectorDIC(ModelSelector):
                 # Log-likelihood of model in context of evidence
                 logL = hmm_model.score(self.X, self.lengths)
                 # Remove current word from the list of all words 
-                anti_words = self.words.keys()
+                anti_words = list(self.words.keys())
                 anti_words.remove(self.this_word)
                 # Log-likelihood of model in context of anti-evidence
                 anti_scores = sum([hmm_model.score(self.hwords[word][0], self.hwords[word][1]) for word in anti_words])
