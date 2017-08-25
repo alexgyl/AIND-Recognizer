@@ -1,5 +1,4 @@
 import warnings
-import copy
 from asl_data import SinglesData
 
 
@@ -21,28 +20,24 @@ def recognize(models: dict, test_set: SinglesData):
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     probabilities = []
     guesses = []
+    # Get list of all test words and the sequences
     all_words = test_set.wordlist
-    Xlengths = copy.deepcopy(test_set.get_all_Xlengths())
-    old_keys = list(Xlengths.keys())
-    new_xlengths = {word: None for word in all_words}
-    # Changing the keys of Xlengths as it's integers and not the words of the test set
-    for i in range(len(all_words)):
-        new_xlengths[all_words[i]] = Xlengths.pop(old_keys[i])
+    Xlengths = test_set.get_all_Xlengths()
 
-    for key, model in models.items():
-        # Initializing an empty dictionary with word keys
-        prob_dict = {word_key: None for word_key in all_words}
-        # Score all words
-        for word in all_words:
-            # print(word)        
-            try:
-                logL = model.score(new_xlengths[word][0], new_xlengths[word][1])
+    # Loop through all test set items
+    for i in range(test_set.num_items):
+        # Probability dictionary
+        prob_dict = {}
+        # Loop through all models and calculate the log-likelihod, if unable to, give worse case score
+        for key, model in models.items():
+            try: 
+                logL = model.score(Xlengths[i][0], Xlengths[i][1])
             except:
                 logL = float("-Inf")
-            prob_dict[word] = logL
-        # Find the best guess word
+            prob_dict[key] = logL
+        # Get the word with the largest probability
         best_guess = max(prob_dict)
-        # Update probabilities and guesses list
+        # Update the lists accordingly
         probabilities.append(prob_dict)
         guesses.append(best_guess)
 
