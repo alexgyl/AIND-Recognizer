@@ -166,8 +166,8 @@ class SelectorDIC(ModelSelector):
                     print("failure on {} with {} states".format(self.this_word, num_states))
                     return None
 
-            ## Tracking best score and best number of states parameter - the lower the BIC the better
-            if DIC_score < best_score:
+            ## Tracking best score and best number of states parameter - the higher the DIC the better
+            if DIC_score > best_score:
                 best_score = DIC_score
                 best_num_states = num_states
 
