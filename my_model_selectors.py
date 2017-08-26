@@ -107,7 +107,8 @@ class SelectorBIC(ModelSelector):
                 # Number of data points, considering that each sequence is 1 data point 
                 N = len(sequence_split_train[1])
                 # BIC score
-                BIC_score += (-2 * logL) + (n_params * math.log(len(sequence_split_train[1])))
+                # BIC_score += (-2 * logL) + (n_params * math.log(N))
+                BIC_score = (-2 * logL) + (n_params * math.log(n_data_points))
             except:
                 if self.verbose:
                     print("failure on {} with {} states".format(self.this_word, num_states))
@@ -140,7 +141,7 @@ class SelectorDIC(ModelSelector):
 
         # Implement model selection based on DIC scores
         # Initial values
-        best_score = float("Inf")
+        best_score = float("-Inf")
         best_num_states = 2
         ## Iterate through a number of states to test which is the best representation
         for num_states in range(self.min_n_components, self.max_n_components + 1):
@@ -160,7 +161,7 @@ class SelectorDIC(ModelSelector):
                 # Log-likelihood of model in context of anti-evidence
                 anti_scores = sum([hmm_model.score(self.hwords[word][0], self.hwords[word][1]) for word in anti_words])
                 # DIC Score
-                DIC_score += logL - (anti_scores / len(anti_words))
+                DIC_score = logL - (anti_scores / len(anti_words))
             except:   
                 if self.verbose:
                     print("failure on {} with {} states".format(self.this_word, num_states))
