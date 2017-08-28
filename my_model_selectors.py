@@ -197,26 +197,43 @@ class SelectorCV(ModelSelector):
             score = 0
             ## Perform CV split
             # Case if we have less data than samples (here we use KFold = 3 folds)
-            n_split = min(3, len(self.sequences))   
+            if len(self.sequences) < 3:
+                n_split = 1
+                DO_KFOLD = False
+            else:
+                n_split = 3
+                DO_KFOLD = True       
+            if DO_KFOLD:
             ## Create the split method & fix the seeding
-            split_method = KFold(n_splits = n_split, random_state = self.random_state)
-            ## KFold CV
-            for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+                split_method = KFold(n_splits = n_split, random_state = self.random_state)
+                ## KFold CV
+                for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+                    try:
+                        # Split the sequences accordingly using helper function to split the data correct
+                        sequence_split_train = combine_sequences(cv_train_idx, self.sequences)
+                        sequence_split_cv = combine_sequences(cv_test_idx, self.sequences)
+                        # HMM Model building - num_states is our parameter that is found using CV
+                        hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
+                                    random_state=self.random_state, verbose=False).fit(sequence_split_train[0], sequence_split_train[1])
+                        if self.verbose:
+                            print("model created for {} with {} states".format(self.this_word, num_states))
+                        score += hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
+                    except:
+                        if self.verbose:
+                            print("failure on {} with {} states".format(self.this_word, num_states))
+                            return None
+            else:
                 try:
-                    # Split the sequences accordingly using helper function to split the data correct
-                    sequence_split_train = combine_sequences(cv_train_idx, self.sequences)
-                    sequence_split_cv = combine_sequences(cv_test_idx, self.sequences)
-                    # HMM Model building - num_states is our parameter that is found using CV
+                    # HMM Model building without CV
                     hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
-                                random_state=self.random_state, verbose=False).fit(sequence_split_train[0], sequence_split_train[1])
+                                random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
                     if self.verbose:
                         print("model created for {} with {} states".format(self.this_word, num_states))
-                    score += hmm_model.score(sequence_split_cv[0], sequence_split_cv[1])
+                    score += hmm_model.score(self.X, self.lengths)
                 except:
                     if self.verbose:
                         print("failure on {} with {} states".format(self.this_word, num_states))
                         return None
-            
             ## Average the score across all the folds - KFold is fixed to 3 at the moment, except if there's too little data
             score /= n_split
             ## Tracking best score and best number of states parameter
