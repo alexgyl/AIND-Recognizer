@@ -36,7 +36,7 @@ def recognize(models: dict, test_set: SinglesData):
                 logL = float("-Inf")
             prob_dict[key] = logL
         # Get the word with the largest probability
-        best_guess = max(prob_dict)
+        best_guess = max(prob_dict, key = prob_dict.get)
         # Update the lists accordingly
         probabilities.append(prob_dict)
         guesses.append(best_guess)

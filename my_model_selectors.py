@@ -101,14 +101,14 @@ class SelectorBIC(ModelSelector):
                 # Variance of distributions -> n * m variances as there needs to be a variance for each distribution and we are 
                 # also using normal distributions
                 # This gives us n^2 + 2nm - 1
-                n_data_points, n_features = self.X.shape
+                n_samples, n_features = self.X.shape
                 n_params = num_states ** 2 + (2 * num_states * n_features) - 1
 
                 # Number of data points, considering that each sequence is 1 data point 
                 N = len(sequence_split_train[1])
                 # BIC score
-                # BIC_score += (-2 * logL) + (n_params * math.log(N))
-                BIC_score = (-2 * logL) + (n_params * math.log(n_data_points))
+                BIC_score = (-2 * logL) + (n_params * math.log(N))
+                # BIC_score = (-2 * logL) + (n_params * math.log(n_samples))
             except:
                 if self.verbose:
                     print("failure on {} with {} states".format(self.this_word, num_states))
@@ -202,7 +202,8 @@ class SelectorCV(ModelSelector):
                 DO_KFOLD = False
             else:
                 n_split = 3
-                DO_KFOLD = True       
+                DO_KFOLD = True
+            ## Decide if need to do K-Fold as per the data       
             if DO_KFOLD:
             ## Create the split method & fix the seeding
                 split_method = KFold(n_splits = n_split, random_state = self.random_state)
