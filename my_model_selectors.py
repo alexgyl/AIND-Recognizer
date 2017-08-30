@@ -104,11 +104,8 @@ class SelectorBIC(ModelSelector):
                 n_samples, n_features = self.X.shape
                 n_params = num_states ** 2 + (2 * num_states * n_features) - 1
 
-                # Number of data points, considering that each sequence is 1 data point 
-                N = len(sequence_split_train[1])
                 # BIC score
-                BIC_score = (-2 * logL) + (n_params * math.log(N))
-                # BIC_score = (-2 * logL) + (n_params * math.log(n_samples))
+                BIC_score = (-2 * logL) + (n_params * math.log(n_samples))
             except:
                 if self.verbose:
                     print("failure on {} with {} states".format(self.this_word, num_states))
