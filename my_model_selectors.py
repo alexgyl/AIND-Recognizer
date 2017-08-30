@@ -85,27 +85,38 @@ class SelectorBIC(ModelSelector):
             BIC_score = 0
             
             try:
-                # HMM Model building - num_states is our parameter that is found using CV
-                hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
-                            random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
-                if self.verbose:
-                    print("model created for {} with {} states".format(self.this_word, num_states))
-                # Log-likelihood score
-                logL = hmm_model.score(self.X, self.lengths)
-                # Number of parameters used by the model - HMMs are defined by the transition probabilities,
-                # the emission probabilities, initial probability, means and variance of distribution
-                # Let n be the number of states and m be the number of features
-                # Transition probabilities -> n * (n - 1) since for the last prob, we can find it through (1 - all other prob)
-                # Initial probabilites -> n - 1 since we have n possible states to start in but last state can found via (1 - n)
-                # Means of distributions -> n * m means as there is a distribution for each features in each state
-                # Variance of distributions -> n * m variances as there needs to be a variance for each distribution and we are 
-                # also using normal distributions
-                # This gives us n^2 + 2nm - 1
-                n_samples, n_features = self.X.shape
-                n_params = num_states ** 2 + (2 * num_states * n_features) - 1
+                # Catch case if n_samples > n_states
+                # if len(self.X) < num_states:
+                if num_states > sum(self.lengths):
+                    return None
+                else:
+                    # print(self.this_word)
+                    # print("Number of samples {}".format(sum(self.lengths)))
+                    # print("Length of self.x[0] {}".format(len(self.X[0])))
+                    # print("Length of self.x {}".format(len(self.X)))
+                    # print("Shape size X[0] {}".format(self.X.shape[0]))
+                    # print("Number of states {}".format(num_states))
+                    # HMM Model building - num_states is our parameter that is found using CV
+                    hmm_model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
+                                random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                    if self.verbose:
+                        print("model created for {} with {} states".format(self.this_word, num_states))
+                    # Log-likelihood score
+                    logL = hmm_model.score(self.X, self.lengths)
+                    # Number of parameters used by the model - HMMs are defined by the transition probabilities,
+                    # the emission probabilities, initial probability, means and variance of distribution
+                    # Let n be the number of states and m be the number of features
+                    # Transition probabilities -> n * (n - 1) since for the last prob, we can find it through (1 - all other prob)
+                    # Initial probabilites -> n - 1 since we have n possible states to start in but last state can found via (1 - n)
+                    # Means of distributions -> n * m means as there is a distribution for each features in each state
+                    # Variance of distributions -> n * m variances as there needs to be a variance for each distribution and we are 
+                    # also using normal distributions
+                    # This gives us n^2 + 2nm - 1
+                    n_samples, n_features = self.X.shape
+                    n_params = num_states ** 2 + (2 * num_states * n_features) - 1
 
-                # BIC score
-                BIC_score = (-2 * logL) + (n_params * math.log(n_samples))
+                    # BIC score
+                    BIC_score = (-2 * logL) + (n_params * math.log(n_samples))
             except:
                 if self.verbose:
                     print("failure on {} with {} states".format(self.this_word, num_states))
@@ -116,6 +127,7 @@ class SelectorBIC(ModelSelector):
                 best_num_states = num_states
 
         ## Build the best hmm model using all data once parameter has been finalized
+        # print("CURRENT WORD: {}".format(self.this_word))
         best_hmm_model = GaussianHMM(n_components=best_num_states, covariance_type="diag", n_iter=1000,
                         random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
         if self.verbose:
